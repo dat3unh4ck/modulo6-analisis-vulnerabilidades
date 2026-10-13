@@ -1,75 +1,68 @@
 # 8. Conclusiones
 
-Este proyecto nació de una consigna exigente: *no* limitarme a ejecutar exploits públicos, sino
-**construir una metodología propia** de análisis de vulnerabilidades y desarrollo de exploits,
-y documentarla para que otro analista pueda aprender de ella. Estas son mis conclusiones tras
-recorrer ese camino.
+El encargo era exigente: no quedarme en ejecutar exploits públicos, sino construir
+mi propia metodología de análisis de vulnerabilidades y desarrollo de exploits, y
+documentarla para que otro pueda aprender de ella. Esto es lo que saco después de
+recorrerla.
 
----
+## 8.1. Lo que he montado
 
-## 8.1. Lo que he construido
+- Una metodología de 7 fases (cap. 1), dentro del ciclo de gestión de
+  vulnerabilidades, con una forma de pensar concreta: entender el porqué, pensar
+  en patrones y bajar al nivel de la máquina.
+- Un mapa de las protecciones modernas (cap. 2), no como lista sino como barreras
+  encadenadas que deciden qué técnica de explotación es viable.
+- Las herramientas ordenadas por fase (cap. 3): la correcta en el momento
+  correcto.
+- Un caso práctico completo y reproducible (cap. 4 y [`labs/`](../labs/)): del
+  `strcpy` vulnerable al control de EIP y la redirección, con su contraste frente
+  al binario protegido.
+- El análisis de cuatro CVE reales (cap. 5) que, bajo familias muy distintas,
+  comparten la misma raíz: entrada controlada más validación ausente.
+- Un flujo de investigación de 0days (cap. 6): el embudo que va de una superficie
+  amplia a un fallo entendido en su causa.
+- La vuelta defensiva (cap. 7) que conecta todo lo anterior con lo que quiero
+  hacer: Blue Team y SOC.
 
-- Una **metodología de 7 fases** (cap. 1), enmarcada en el ciclo de gestión de vulnerabilidades
-  y guiada por una mentalidad concreta: entender el *porqué*, pensar en patrones y bajar al
-  nivel de la máquina.
-- Un mapa de **protecciones modernas** (cap. 2) entendidas no como una lista, sino como barreras
-  encadenadas que definen qué técnica de explotación es viable.
-- Un **arsenal ordenado por fase** (cap. 3): la herramienta correcta en el momento correcto.
-- Un **caso práctico completo y reproducible** (cap. 4 + [`labs/`](../labs/)): del `strcpy`
-  vulnerable al control de EIP y la redirección de flujo, con su contraste frente al binario
-  protegido.
-- El análisis de **cuatro CVEs reales** (cap. 5) que demuestran que, bajo familias muy distintas,
-  late el mismo patrón: entrada controlada + validación ausente.
-- Un **flujo de investigación de 0days** (cap. 6): el embudo que va de una superficie amplia a
-  un fallo entendido en su causa raíz.
-- Una vuelta **defensiva** (cap. 7) que conecta todo lo anterior con mi objetivo profesional en
-  Blue Team / SOC.
+## 8.2. Lo que me llevo
 
----
+- Un fallo no es una vulnerabilidad, y una vulnerabilidad no es un exploit. Entre
+  cada escalón hay trabajo: reproducir, entender, sortear protecciones, dar
+  fiabilidad.
+- La explotación moderna es ir resolviendo barreras encadenadas, no un truco
+  único. Leak contra ASLR, ROP contra DEP, sin romper el canary. Cada protección
+  sube el coste.
+- El patrón importa más que el caso. Cuatro CVE distintas con la misma raíz;
+  reconocer esa raíz es lo que me prepara para el fallo que aún no existe.
+- Entender la ofensiva es la mejor defensa. Saber cómo se arma un exploit es lo
+  que me dice qué telemetría buscar y dónde bastionar para que duela.
+- Documentar es parte del trabajo técnico, no un apéndice. Un hallazgo sin informe
+  claro y reproducible pierde la mitad de su valor.
 
-## 8.2. Las ideas que me llevo
+## 8.3. De dónde parto, sin inflarlo
 
-1. **Un fallo no es una vulnerabilidad, y una vulnerabilidad no es un exploit.** Entre cada
-   escalón hay trabajo real: reproducir, entender, sortear protecciones, dar fiabilidad.
-2. **La explotación moderna es encadenar soluciones a barreras**, no un truco único. Leak contra
-   ASLR, ROP contra DEP, respetar el canary... Cada protección sube el coste del atacante.
-3. **El patrón importa más que el caso.** Cuatro CVEs distintas comparten raíz; reconocer esa
-   raíz es lo que me preparará para el fallo que aún no existe.
-4. **Entender la ofensiva es la mejor defensa.** Saber cómo se construye un exploit es lo que me
-   dice qué telemetría buscar y dónde bastionar para que duela.
-5. **Documentar es parte del trabajo técnico.** Un hallazgo sin un informe claro y reproducible
-   pierde la mitad de su valor.
+Estoy empezando. No tengo todavía CVE propias ni decenas de binarios resueltos, y
+prefiero decirlo claro antes que adornar el trabajo. Lo que sí tengo es un método
+sólido, un laboratorio reproducible hecho por mí y la capacidad de analizar casos
+reales con criterio. Este repositorio es el punto de partida de un portfolio que
+pienso hacer crecer, no el final.
 
----
+## 8.4. Por dónde sigo
 
-## 8.3. Honestidad sobre mi punto de partida
-
-Empiezo. No tengo todavía un historial de CVEs propias ni decenas de binarios resueltos, y
-prefiero decirlo con claridad antes que inflar el trabajo. Lo que sí tengo es un **método
-sólido**, un **laboratorio reproducible** construido por mí, y la capacidad de **analizar casos
-reales con criterio**. Este repositorio es el punto de partida de un portfolio que pienso hacer
-crecer, no un punto final.
-
----
-
-## 8.4. Próximos pasos (cómo evoluciona esta metodología)
-
-- **Resolver y documentar** retos de pwn/binary exploitation (HTB, TryHackMe, pwnable.kr,
-  PortSwigger) con este mismo patrón, ampliando el capítulo 5 con casos propios.
-- **Subir de nivel técnico:** ROP real contra DEP, bypass de ASLR con infoleaks, heap
+- Resolver y documentar retos de pwn (HTB, TryHackMe, pwnable.kr, PortSwigger) con
+  este mismo patrón, ampliando el capítulo 5 con casos míos.
+- Subir el nivel técnico: ROP real contra DEP, bypass de ASLR con infoleaks, heap
   exploitation, explotación en 64 bits.
-- **Profundizar en fuzzing con cobertura** (AFL++/libFuzzer) sobre software open source y
-  practicar el *root cause analysis* de los crashes.
-- **Cerrar el círculo defensivo:** para cada técnica ofensiva que aprenda, construir su
-  detección (Sysmon/EDR/SIEM), mapearla a MITRE ATT&CK y validarla con Atomic Red Team.
-- Mantener este repositorio **vivo**: cada caso nuevo es una iteración de la metodología, tal y
-  como el propio ciclo predica.
+- Profundizar en fuzzing con cobertura (AFL++/libFuzzer) sobre software open source
+  y practicar el root cause analysis de los crashes.
+- Cerrar el lado defensivo: para cada técnica ofensiva que aprenda, montar su
+  detección (Sysmon/EDR/SIEM), mapearla a MITRE ATT&CK y validarla con Atomic Red
+  Team.
+- Mantener el repositorio vivo: cada caso nuevo es una iteración más de la
+  metodología.
 
----
-
-> El módulo planteaba que esto *"no es solo un módulo, es una forma de ponerte a prueba"*. Me lo
-> he tomado así: más que acumular técnicas, he intentado demostrar que puedo **investigar por mi
-> cuenta, sacar conclusiones y documentarlas de forma profesional**. Ese es el analista que
-> quiero ser, y este proyecto es la primera evidencia de ello.
-
-➡️ Referencias en [9. Bibliografía y recursos](09-bibliografia.md)
+En el enunciado había una frase sobre que esto era menos un módulo y más una
+forma de ponerte a prueba, y me lo tomé al pie de la letra. Más que acumular
+técnicas, lo que he intentado demostrar es que
+puedo investigar por mi cuenta, sacar conclusiones y documentarlas bien. Es el
+analista que quiero ser, y este proyecto es el primer paso.

@@ -1,15 +1,16 @@
 # 2. Mecanismos de protección que pueden impedir la explotación
 
-Comprender las protecciones modernas es esencial por dos motivos: me explica **cómo ha
-evolucionado la seguridad** de los sistemas, y me da el conocimiento necesario para
-**analizar y, en entornos controlados, sortear** esas barreras. Cada defensa impone un
-obstáculo concreto en el camino del atacante; muchas se combinan formando un ecosistema que
-hace que la explotación moderna no sea solo *detectar un fallo*, sino *entender cómo pasar
-por encima de estas capas sin romper el sistema en el intento*.
+Conocer las protecciones modernas me sirve para dos cosas: entender cómo ha ido
+evolucionando la seguridad de los sistemas, y saber qué barrera concreta tengo
+delante cuando analizo un fallo en un entorno controlado. Cada defensa pone un
+obstáculo distinto, y casi nunca aparecen solas: se combinan, y es esa
+combinación la que hace que la explotación de hoy no sea solo encontrar el fallo,
+sino averiguar cómo pasar por encima de varias capas sin romper el proceso por el
+camino.
 
-La explotación clásica (desbordar la pila, meter shellcode y saltar a él) hoy choca con
-varias de estas defensas a la vez. Por eso la fase 3 de mi metodología (contexto) siempre
-incluye inventariar **qué protecciones están activas**.
+La explotación clásica —desbordar la pila, meter shellcode, saltar a él— choca
+hoy con varias de estas defensas a la vez. Por eso la fase 3 (contexto) siempre
+incluye inventariar qué hay activo.
 
 ```mermaid
 mindmap
@@ -27,90 +28,87 @@ mindmap
       PatchGuard
 ```
 
----
-
 ## 2.1. ASLR — Address Space Layout Randomization
-**Qué hace:** aleatoriza la posición en memoria de la pila, el heap, las librerías y (con PIE)
-el propio ejecutable, en cada ejecución.
-**Qué rompe:** las direcciones *hardcodeadas*. Un exploit que salta a una dirección fija deja
-de funcionar porque esa dirección cambia.
-**Cómo se sortea (en entorno controlado):** con un **infoleak** —una fuga que revele una
-dirección real en runtime— para recalcular el resto por *offset*; o atacando binarios/módulos
-compilados **sin** PIE/ASLR. También existe el abuso de **baja entropía** en 32 bits.
+
+Aleatoriza en cada ejecución dónde caen la pila, el heap, las librerías y —con
+PIE— el propio ejecutable. Rompe cualquier exploit que salte a una dirección
+fija, porque esa dirección ya no es la misma dos veces. Para sortearlo en
+laboratorio hace falta un infoleak: una fuga que revele una dirección real en
+tiempo de ejecución, a partir de la cual recalculas el resto por offset. También
+sirve atacar binarios compilados sin PIE, o abusar de la baja entropía que tiene
+ASLR en 32 bits.
 
 ## 2.2. DEP / NX — Data Execution Prevention / No-eXecute
-**Qué hace:** marca regiones de datos (pila, heap) como **no ejecutables**. Si el flujo salta
-a shellcode colocado en la pila, la CPU lanza una excepción.
-**Qué rompe:** la inyección clásica de shellcode en la pila.
-**Cómo se sortea:** **reutilizando código ya ejecutable** del propio proceso →
-**ret2libc** (saltar a `system()`) o **ROP** (encadenar *gadgets* que terminan en `ret`
-para construir la lógica deseada sin inyectar código nuevo).
 
-## 2.3. Stack Canaries (GS / Stack Cookies)
-**Qué hace:** el compilador coloca un valor secreto (*canary*) entre las variables locales y
-la dirección de retorno. Antes de `ret`, comprueba que el canary no ha cambiado; si un
-overflow lo pisó, aborta (`*** stack smashing detected ***`).
-**Qué rompe:** el stack overflow lineal "ciego": no puedes llegar a la dirección de retorno
-sin destruir el canary.
-**Cómo se sortea:** **filtrando** el valor del canary (infoleak) para reescribirlo intacto;
-o atacando por vías que no lo cruzan (sobrescritura de punteros antes del canary, SEH en
-Windows, etc.).
+Marca las zonas de datos (pila, heap) como no ejecutables. Si el flujo salta a
+shellcode colocado en la pila, la CPU lanza una excepción. Esto mata la inyección
+clásica de shellcode. La respuesta es no inyectar código nuevo, sino reutilizar
+el que ya existe y es ejecutable: ret2libc (saltar a `system()`) o ROP (encadenar
+gadgets que acaban en `ret` hasta construir la lógica que quieres).
+
+## 2.3. Stack canaries (GS / stack cookies)
+
+El compilador coloca un valor secreto entre las variables locales y la dirección
+de retorno. Antes de `ret` comprueba que ese valor no ha cambiado; si un overflow
+lo pisó, aborta con `*** stack smashing detected ***`. Esto corta el overflow
+lineal "a ciegas": no llegas a la dirección de retorno sin destruir el canary por
+el camino. Para pasarlo hay que filtrar su valor con un infoleak y reescribirlo
+intacto, o atacar por una vía que no lo cruce (sobrescribir punteros situados
+antes del canary, SEH en Windows).
 
 ## 2.4. CFG — Control Flow Guard
-**Qué hace:** protección del compilador/SO (Windows) que valida, en las llamadas indirectas,
-que el destino sea un **punto de entrada legítimo**. Dificulta redirigir llamadas por punteros
-de función corruptos.
-**Qué rompe:** muchas técnicas de secuestro de flujo basadas en sobrescribir punteros de
-función/vtables.
-**Cómo se sortea:** buscando destinos que CFG considere válidos pero útiles, fallos en la
-propia implementación, o vectores que CFG no cubre (p. ej. ciertos *returns*; de ahí
-evoluciones como CET/Shadow Stack).
+
+Protección de compilador y SO en Windows que valida, en las llamadas indirectas,
+que el destino sea un punto de entrada legítimo. Complica redirigir llamadas a
+través de punteros de función corruptos o vtables pisadas. Se ataca buscando
+destinos que CFG dé por válidos pero que sigan siendo útiles, fallos en la propia
+implementación, o vectores que no cubre —de ahí que apareciera CET con shadow
+stack para cerrar el hueco de los `ret`—.
 
 ## 2.5. SafeSEH / SEHOP
-**Qué hace:** protege el mecanismo de manejo de excepciones de Windows (SEH), validando que
-los manejadores sean legítimos. Nace frente a los clásicos **SEH overwrites**.
-**Qué rompe:** la sobrescritura de la cadena de manejadores de excepción para desviar el flujo.
-**Cómo se sortea:** módulos compilados **sin** SafeSEH, o técnicas que respetan la cadena SEHOP.
+
+Protegen el manejo de excepciones de Windows (SEH) validando que los manejadores
+sean legítimos. Nacieron frente a los clásicos SEH overwrites, en los que se
+pisaba la cadena de manejadores para desviar el flujo. Se sortean con módulos
+compilados sin SafeSEH o con técnicas que respetan la cadena que SEHOP espera.
 
 ## 2.6. SecureBoot
-**Qué hace:** garantiza, en el arranque, que solo se cargue firmware/bootloader/SO **firmado**
-y de confianza. Protege la cadena de arranque frente a bootkits/rootkits.
-**Qué rompe:** la persistencia a nivel de arranque con código no firmado.
-**Relevancia:** es una defensa de **integridad de arranque**, más que de explotación en
+
+Garantiza que en el arranque solo se cargue firmware, bootloader y SO firmados y
+de confianza, cortando la persistencia de bootkits y rootkits con código no
+firmado. Es una defensa de integridad de arranque más que de explotación en
 runtime, pero define el suelo de confianza sobre el que corre todo lo demás.
 
 ## 2.7. DSE — Driver Signature Enforcement
-**Qué hace:** obliga a que los **drivers** de kernel estén firmados. Eleva mucho el listón para
-ejecutar código en *ring 0*.
-**Qué rompe:** la carga de drivers maliciosos no firmados.
-**Cómo se sortea (contexto ofensivo real):** **BYOVD** (*Bring Your Own Vulnerable Driver*):
-abusar de un driver legítimo **firmado pero vulnerable** para ganar ejecución en kernel.
+
+Obliga a que los drivers de kernel estén firmados, lo que sube mucho el listón
+para ejecutar código en ring 0. La vía que se usa en el mundo real es BYOVD
+(Bring Your Own Vulnerable Driver): abusar de un driver legítimo, firmado pero
+vulnerable, para colarse en el kernel.
 
 ## 2.8. PatchGuard (KPP)
-**Qué hace:** en Windows x64, vigila que estructuras críticas del kernel (SSDT, IDT, etc.) no
-sean modificadas. Si detecta manipulación, provoca un BSOD.
-**Qué rompe:** el *hooking* de kernel clásico de los rootkits.
-**Relevancia:** empuja a los atacantes hacia técnicas que no tocan las estructuras vigiladas.
 
----
+En Windows x64, vigila que estructuras críticas del kernel (SSDT, IDT) no se
+modifiquen; si detecta manipulación, provoca un BSOD. Mata el hooking de kernel
+clásico de los rootkits y empuja a los atacantes hacia técnicas que no tocan lo
+que está vigilado.
 
-## 2.9. Cómo me condiciona todo esto (tabla de decisión)
+## 2.9. Cómo me condiciona todo esto
 
-| Protección | Capa | Qué me bloquea | Mi vía de estudio para sortearla |
-|------------|------|----------------|----------------------------------|
-| ASLR | SO / memoria | Direcciones fijas | Infoleak → cálculo por offset; binarios no-PIE |
+| Protección | Capa | Qué me bloquea | Vía de estudio para sortearla |
+|------------|------|----------------|-------------------------------|
+| ASLR | SO / memoria | Direcciones fijas | Infoleak → offset; binarios no-PIE |
 | DEP/NX | HW + SO | Shellcode en pila | ROP / ret2libc |
-| Stack Canary | Compilador | Overflow lineal a EIP | Leak del canary; vectores que no lo cruzan |
+| Stack canary | Compilador | Overflow lineal a EIP | Leak del canary; vectores que no lo cruzan |
 | CFG | Compilador/SO | Llamadas indirectas corruptas | Destinos válidos; returns; fallos de impl. |
 | SafeSEH/SEHOP | Compilador/SO | SEH overwrite | Módulos sin SafeSEH |
-| SecureBoot | Firmware | Código de arranque no firmado | (Integridad; fuera de runtime) |
+| SecureBoot | Firmware | Código de arranque no firmado | Integridad; fuera de runtime |
 | DSE | Kernel | Drivers no firmados | BYOVD |
 | PatchGuard | Kernel | Hooking de estructuras | Técnicas que no tocan lo vigilado |
 
-> **Idea clave:** ninguna protección por sí sola hace un sistema inexpugnable, pero su
-> **combinación** convierte la explotación en una cadena de problemas encadenados: primero un
-> leak (vs ASLR), luego ROP (vs DEP), respetando el canary... Cada capa que añades multiplica
-> el coste del atacante. Esto es exactamente lo que, desde el lado defensivo (cap. 7), quiero
-> maximizar.
-
-➡️ Continúa en [3. El arsenal: herramientas por fase](03-arsenal-herramientas.md)
+Ninguna de estas protecciones hace por sí sola que un sistema sea inexpugnable.
+Lo que cambia las cosas es juntarlas: la explotación pasa a ser una cadena de
+problemas encadenados —primero un leak contra ASLR, luego ROP contra DEP, sin
+romper el canary—, y cada capa que añades multiplica el coste del atacante. Desde
+el lado defensivo (cap. 7), eso es justo lo que quiero: que ese coste sea lo más
+alto posible.

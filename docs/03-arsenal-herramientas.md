@@ -1,8 +1,9 @@
-# 3. El arsenal: herramientas organizadas por fase
+# 3. Herramientas organizadas por fase
 
-Conocer herramientas no es el objetivo; **saber cuándo usar cada una** sí lo es. Por eso no
-presento un catálogo plano, sino un mapa de **qué herramienta aporta en qué fase** de mi
-metodología. Una herramienta mal situada hace perder tiempo; bien situada, acelera el análisis.
+Saber qué herramientas existen no es lo importante; lo importante es saber cuándo
+usar cada una. Por eso no las pongo en un listado plano, sino situadas en la fase
+donde aportan. Una herramienta fuera de su sitio te hace perder el tiempo; en el
+sitio correcto, acelera el análisis.
 
 ```mermaid
 flowchart LR
@@ -21,116 +22,107 @@ flowchart LR
     Identificación --> Análisis --> Explotación --> Cierre
 ```
 
----
+## 3.1. Mapeo de superficie
 
-## 3.1. Identificación de activos y mapeo de superficie
-*Fase: contexto / superficie de ataque.*
+Fase de contexto. Para saber qué hay expuesto antes de nada.
 
 | Herramienta | Para qué la uso |
 |-------------|-----------------|
-| **Nmap** | Descubrimiento de puertos/servicios y *fingerprinting*; la base de todo mapeo |
-| **Masscan** | Barridos masivos a gran velocidad en rangos grandes |
-| **RustScan** | Descubrimiento rápido de puertos que encadena con Nmap |
-| **Amass** | Enumeración de subdominios / superficie externa (OSINT) |
-| **Sn1per** | Orquestador que automatiza fases de reconocimiento |
+| Nmap | Descubrimiento de puertos y servicios, fingerprinting. La base de todo |
+| Masscan | Barridos masivos a gran velocidad en rangos grandes |
+| RustScan | Descubrimiento rápido de puertos, encadenado con Nmap |
+| Amass | Enumeración de subdominios y superficie externa (OSINT) |
+| Sn1per | Orquestador que automatiza fases de reconocimiento |
 
 ## 3.2. Escáneres de vulnerabilidades
-*Fase: identificación (vulnerabilidades conocidas).*
+
+Para lo que ya es conocido.
 
 | Herramienta | Nota |
 |-------------|------|
-| **Nessus Professional** | Escáner de referencia en entornos corporativos |
-| **Qualys** | Plataforma cloud de gestión de vulnerabilidades |
-| **Nexpose / InsightVM** (Rapid7) | Escaneo + priorización por riesgo |
-| **OpenVAS** (Greenbone) | Alternativa open source muy completa |
-| **Nuclei** | Escaneo basado en *templates* YAML; ideal para automatizar checks concretos |
-| **Vuls** | Escáner de vulnerabilidades centrado en Linux/servidores |
+| Nessus Professional | El escáner de referencia en entornos corporativos |
+| Qualys | Plataforma cloud de gestión de vulnerabilidades |
+| Nexpose / InsightVM | Escaneo con priorización por riesgo (Rapid7) |
+| OpenVAS (Greenbone) | Alternativa open source muy completa |
+| Nuclei | Escaneo por templates YAML, ideal para automatizar checks concretos |
+| Vuls | Centrado en Linux y servidores |
 
-> Los escáneres encuentran lo **conocido** (CVE con firma). No descubren 0days: para eso están
-> el fuzzing, el reversing y el diffing. Confundir "pasé un Nessus" con "analicé la seguridad"
-> es un error de junior que quiero evitar.
+Los escáneres encuentran lo conocido, lo que tiene firma. No descubren 0days;
+para eso están el fuzzing, el reversing y el diffing. Confundir "pasé un Nessus"
+con "analicé la seguridad" es el error de junior que no quiero cometer.
 
-## 3.3. Software de gestión de vulnerabilidades
-*Fase: contexto y seguimiento.*
+## 3.3. Gestión de vulnerabilidades
 
-**Faraday**, **DefectDojo** y **ArcherySec** centralizan hallazgos de múltiples herramientas,
-deduplican y permiten seguir el ciclo de vida de cada vulnerabilidad. Encajan con la parte
-*Remediate → Verify* del ciclo de gestión y son muy valorados en un entorno SOC.
+Faraday, DefectDojo y ArcherySec centralizan hallazgos de varias herramientas,
+deduplican y dejan seguir el ciclo de vida de cada vulnerabilidad. Encajan con la
+parte Remediate → Verify del ciclo, y en un SOC se valoran.
 
 ## 3.4. Frameworks de explotación
-*Fase: construcción del exploit.*
 
 | Herramienta | Nota |
 |-------------|------|
-| **Metasploit Framework** | El estándar: módulos de exploit, payloads, *post-explotación* |
-| **Core Impact** (Fortra) | Comercial, orientado a pentest profesional guiado |
-| **Exploit Pack** | Framework modular de exploits |
-| **Empire** | Post-explotación y C2 (Command & Control) |
+| Metasploit | El estándar: módulos de exploit, payloads, post-explotación |
+| Core Impact | Comercial, pentest profesional guiado (Fortra) |
+| Exploit Pack | Framework modular de exploits |
+| Empire | Post-explotación y C2 |
 
-Complemento imprescindible: **msfvenom** para generar payloads/shellcodes y manejar
-*bad characters* y codificación.
+Imprescindible al lado: msfvenom, para generar payloads y lidiar con bad
+characters y codificación.
 
-## 3.5. Breach & Attack Simulation (BAS)
-*Fase: validación / perspectiva defensiva.*
+## 3.5. Breach & Attack Simulation
 
-**Caldera** (MITRE), **Atomic Red Team**, **Infection Monkey**, **AttackIQ** y **Cymulate**
-simulan TTPs de adversario de forma automatizada y controlada. Me interesan doblemente:
-validan si un exploit/una técnica funcionaría en un entorno, y —desde el lado SOC— permiten
-**comprobar si mi detección se dispara**. Atomic Red Team, mapeado a MITRE ATT&CK, es mi
-favorito para cerrar el círculo ofensiva↔defensa.
+Caldera (MITRE), Atomic Red Team, Infection Monkey, AttackIQ y Cymulate simulan
+TTPs de adversario de forma automatizada y controlada. Me interesan por partida
+doble: validan si una técnica funcionaría en un entorno y, desde el lado SOC, me
+dicen si mi detección salta. Atomic Red Team, mapeado a MITRE ATT&CK, es con el
+que cierro el círculo ofensiva–defensa.
 
 ## 3.6. Fuzzing
-*Fase: identificación del fallo (descubrimiento).*
 
 | Herramienta | Nota |
 |-------------|------|
-| **AFL++** | Fuzzer guiado por cobertura, referencia en Linux |
-| **WinAFL** | Port de AFL para binarios Windows |
-| **boofuzz** | Fuzzing de **protocolos de red** (sucesor de Sulley) |
-| **Radamsa** | Mutador de entradas sencillo y potente para *dumb fuzzing* |
+| AFL++ | Fuzzer guiado por cobertura, la referencia en Linux |
+| WinAFL | Port de AFL para binarios Windows |
+| boofuzz | Fuzzing de protocolos de red (sucesor de Sulley) |
+| Radamsa | Mutador de entradas sencillo y potente para dumb fuzzing |
 
-Mi `fuzzer.py` del laboratorio es la versión mínima de esta idea: generar entradas y detectar
-el umbral de fallo. Para binarios reales, escalo a AFL++ (cobertura) o boofuzz (red).
+El `fuzzer.py` del laboratorio es la versión mínima de esta idea: generar
+entradas y detectar el umbral del fallo. Para binarios reales escalo a AFL++
+(cobertura) o boofuzz (red).
 
-## 3.7. Ingeniería inversa (estático y dinámico)
-*Fase: exploración del vector / análisis del crash.*
+## 3.7. Ingeniería inversa
 
 | Herramienta | Uso principal |
 |-------------|---------------|
-| **Ghidra** (NSA) | Descompilador + desensamblador, gratuito y potentísimo |
-| **IDA Free / IDA Pro** | El estándar comercial de desensamblado |
-| **Cutter** (Rizin) | Front-end moderno y cómodo para reversing |
-| **x64dbg** | Depurador dinámico en Windows |
-| **GDB** (+ GEF/pwndbg) | Depuración dinámica en Linux; el que uso en el laboratorio |
+| Ghidra (NSA) | Descompilador y desensamblador, gratis y muy capaz |
+| IDA Free / Pro | El estándar comercial de desensamblado |
+| Cutter (Rizin) | Front-end moderno y cómodo |
+| x64dbg | Depurador dinámico en Windows |
+| GDB (+ GEF/pwndbg) | Depuración dinámica en Linux; el que uso en el laboratorio |
 
-## 3.8. Diffing de binarios / patch diffing
-*Fase: identificación (a partir de parches).*
+## 3.8. Diffing de binarios
 
-**BinDiff** y **Diaphora** comparan dos versiones de un binario (p. ej. antes/después de un
-parche) y resaltan las funciones que cambiaron. Es la técnica reina para el **patch diffing**:
-un *Patch Tuesday* de Microsoft, comparado, suele revelar el fallo exacto que se corrigió →
-base de muchos **1-day exploits**.
+BinDiff y Diaphora comparan dos versiones de un binario —por ejemplo antes y
+después de un parche— y resaltan las funciones que cambiaron. Es la técnica reina
+del patch diffing: un Patch Tuesday de Microsoft, comparado, suele revelar el
+fallo exacto que se corrigió, y de ahí salen muchos 1-day exploits.
 
-## 3.9. Reporting orientado a vulnerabilidades
-*Fase: documentación y reporte.*
+## 3.9. Reporting
 
-**PwnDoc** y **Faction** ayudan a generar informes técnicos reproducibles y profesionales.
-Un hallazgo sin un buen informe pierde la mitad de su valor: la tarea pide, literalmente,
-demostrar *"tu habilidad para comunicar los hallazgos de forma profesional y útil"*.
+PwnDoc y Faction ayudan a generar informes técnicos reproducibles. Un hallazgo
+sin un buen informe pierde la mitad de su valor, y la tarea lo pide con esas
+palabras: demostrar la capacidad de comunicar los hallazgos de forma profesional
+y útil.
 
----
+## 3.10. Lo mínimo para arrancar un caso
 
-## 3.10. Mi *stack* mínimo para empezar un caso
+Si tuviera que quedarme con un set reducido, es el que uso en el laboratorio:
 
-Si tuviera que quedarme con un set reducido y reproducible (el que uso en el laboratorio):
+- Descubrir: Nmap y, para binarios, `file`, `checksec`, `strings`, `nm`, `objdump`.
+- Fuzzear: mi `fuzzer.py`, y AFL++ cuando el caso crece.
+- Analizar: GDB con GEF/pwndbg (dinámico) y Ghidra (estático).
+- Calcular y explotar: pwntools (`cyclic`, `process`, ROP) y msfvenom.
+- Documentar: Markdown y capturas, como este repositorio.
 
-- **Descubrir:** Nmap, y para binarios → `file`, `checksec`, `strings`, `nm`, `objdump`.
-- **Fuzzear:** mi `fuzzer.py` → AFL++ cuando crece.
-- **Analizar:** GDB + GEF/pwndbg (dinámico), Ghidra (estático).
-- **Calcular/explotar:** `pwntools` (`cyclic`, `process`, ROP), msfvenom.
-- **Documentar:** Markdown + capturas (este mismo repositorio).
-
-> La herramienta no sustituye al criterio. Un `objdump -d` + GDB bien usados resuelven más que
-> diez escáneres lanzados sin entender la salida.
-
-➡️ Continúa en [4. Caso práctico: del fallo al exploit](04-caso-practico.md)
+La herramienta no sustituye al criterio. Un `objdump -d` y un GDB bien usados
+resuelven más que diez escáneres lanzados sin entender la salida.
