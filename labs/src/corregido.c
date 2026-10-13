@@ -12,7 +12,7 @@
  * NOTA: strcpy_s() forma parte de las "Annex K / bounds-checking interfaces"
  *   del estándar C11 y está disponible en el toolchain de MinGW/MSVC (Windows),
  *   que es el entorno que usa el manual. En glibc (Linux) no suele estar
- *   disponible: para la práctica en Linux, usa src/vuln_linux.c, donde el
+ *   disponible: para la práctica en Linux está src/vuln_linux.c, donde el
  *   patrón equivalente es snprintf()/strncpy() con tamaño explícito.
  *
  * Compilación (Windows / MinGW), tal como indica el manual:

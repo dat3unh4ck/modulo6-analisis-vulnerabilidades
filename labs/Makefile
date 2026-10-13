@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 # Compila los binarios vulnerables en x86 de 32 bits (registro EIP).
 #
-# Hay dos escenarios según tu host:
+# Hay dos escenarios según el host:
 #
 #  A) Host x86/x86-64 (PC Intel/AMD, Kali x86_64):  usa gcc nativo con -m32.
 #       Requiere multilib:   sudo apt install gcc-multilib
